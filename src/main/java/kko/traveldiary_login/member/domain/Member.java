@@ -14,13 +14,21 @@ public class Member {
     private String name;
     private Role role;
 
-    public static Member register(AuthProvider provider, String providerId, String email, String name) {
+    public static Member register(AuthProvider provider, String providerId, String email, String name, Role role) {
         Member member = new Member();
         member.authProvider = provider;
         member.providerId = providerId;
         member.email = email;
         member.name = name;
-        member.role = Role.USER;   // 기본 역할
+        member.role = role;   // 기본 역할
         return member;
+    }
+
+    public void updateEmail(String email) {
+        this.email = email;
+    }
+
+    public void updateName(String name) {
+        this.name = name;
     }
 }
