@@ -7,19 +7,32 @@ import kko.traveldiary_login.member.application.required.RefreshTokenStorage;
 import kko.traveldiary_login.member.application.required.TokenIssuer;
 import kko.traveldiary_login.member.domain.*;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 @Service
-@RequiredArgsConstructor
 public class AuthService implements MobileSDKOAuthManager {
     private final Map<AuthProvider, OAuthVerifier> verifiers;
     private final MemberRepository memberRepository;
     private final RefreshTokenStorage refreshTokenStorage;
     private final TokenIssuer tokenIssuer;
+
+
+    @Autowired
+    public AuthService(List<OAuthVerifier> verifierList,
+                       MemberRepository memberRepository, RefreshTokenStorage refreshTokenStorage, TokenIssuer tokenIssuer) {
+        this.verifiers = verifierList.stream()
+                .collect(Collectors.toMap(OAuthVerifier::provider, oAuthVerifier -> oAuthVerifier));
+        this.memberRepository = memberRepository;
+        this.refreshTokenStorage = refreshTokenStorage;
+        this.tokenIssuer = tokenIssuer;
+    }
 
     @Override
     @Transactional
@@ -41,6 +54,5 @@ public class AuthService implements MobileSDKOAuthManager {
         TokenPair tokenPair = tokenIssuer.issue(m);
         refreshTokenStorage.save(m.getId(), tokenPair.refreshToken());
         return tokenPair;
-
     }
 }

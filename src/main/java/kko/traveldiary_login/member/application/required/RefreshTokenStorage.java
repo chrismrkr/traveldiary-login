@@ -7,3 +7,4 @@ public interface RefreshTokenStorage {
     boolean isValid(Long memberId, String refreshToken);
     void delete(Long memberId);   // 로그아웃 시
 }
+
