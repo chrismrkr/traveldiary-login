@@ -9,30 +9,29 @@ import org.springframework.stereotype.Component;
 @Component
 @RequiredArgsConstructor
 public class RedisRefreshTokenStorage implements RefreshTokenStorage {
-    private static final String KEY_PREFIX = "refresh:";
 
     private final StringRedisTemplate redisTemplate;
     private final JwtProperties jwtProperties;
 
     @Override
-    public void save(Long memberId, String refreshToken) {
+    public void save(Long memberId, String jti, String refreshToken) {
         // refresh token TTL을 Redis 키 만료시간으로 지정 → 만료 시 자동 삭제
         redisTemplate.opsForValue()
-                .set(key(memberId), refreshToken, jwtProperties.refreshTokenTtl());
+                .set(key(memberId, jti), refreshToken, jwtProperties.refreshTokenTtl());
     }
 
     @Override
-    public boolean isValid(Long memberId, String refreshToken) {
-        String stored = redisTemplate.opsForValue().get(key(memberId));
+    public boolean isValid(Long memberId, String jti, String refreshToken) {
+        String stored = redisTemplate.opsForValue().get(key(memberId, jti));
         return stored != null && stored.equals(refreshToken);
     }
 
     @Override
-    public void delete(Long memberId) {
-        redisTemplate.delete(key(memberId));
+    public void delete(Long memberId, String jti) {
+        redisTemplate.delete(key(memberId, jti));
     }
 
-    private String key(Long memberId) {
-        return KEY_PREFIX + memberId;
+    private String key(Long memberId, String jti) {
+        return "refresh:" + memberId + ":" + jti;
     }
 }

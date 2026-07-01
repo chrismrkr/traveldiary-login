@@ -37,20 +37,16 @@ public class AuthService implements MobileSDKOAuthManager {
     public TokenPair login(AuthProvider authProvider, String idToken) {
         OAuthInfo oAuthInfo = verifiers.get(authProvider).verify(idToken);
 
-        Member m = memberRepository.findByProviderAndProviderId(authProvider, oAuthInfo.providerId())
-                .map(member -> {
-                    member.updateEmail(oAuthInfo.email());
-                    member.updateName(oAuthInfo.name());
-                    return member;
+        Member member = memberRepository.findByProviderAndProviderId(authProvider, oAuthInfo.providerId())
+                .map(m -> {
+                    m.updateByOAuthInfo(oAuthInfo);
+                    return m;
                 })
-                .orElseGet(() -> {
-                    Member newMember = Member.register(authProvider, oAuthInfo.providerId(), oAuthInfo.email(), oAuthInfo.name(), Role.USER);
-                    newMember = memberRepository.save(newMember);
-                    return newMember;
-                });
+                .orElseGet(() -> Member.register(authProvider, oAuthInfo.providerId(), oAuthInfo.email(), oAuthInfo.name(), Role.USER));
 
-        TokenPair tokenPair = tokenIssuer.issue(m);
-        refreshTokenStorage.save(m.getId(), tokenPair.refreshToken());
+        member = memberRepository.save(member);
+        TokenPair tokenPair = tokenIssuer.issue(member);
+        refreshTokenStorage.save(member.getId(), tokenPair.jti(), tokenPair.refreshToken());
         return tokenPair;
     }
 }

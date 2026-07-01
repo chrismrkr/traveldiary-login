@@ -7,8 +7,6 @@ import com.google.api.client.json.gson.GsonFactory;
 import kko.traveldiary_login.member.application.required.OAuthVerifier;
 import kko.traveldiary_login.member.domain.AuthProvider;
 import kko.traveldiary_login.member.domain.OAuthInfo;
-import lombok.AccessLevel;
-import lombok.NoArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.BadCredentialsException;

@@ -1,3 +1,5 @@
 package kko.traveldiary_login.member.domain;
 
-public record TokenPair(String accessToken, String refreshToken) { }
+import java.time.Duration;
+
+public record TokenPair(String accessToken, String refreshToken, String jti) { }

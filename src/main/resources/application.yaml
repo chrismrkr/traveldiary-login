@@ -1,6 +1,10 @@
 spring:
   application:
     name: traveldiary-login
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
 
 app:
   jwt:
@@ -12,4 +16,4 @@ app:
 
   oauth:
     google:
-      client-id: ${GOOGLE_CLIENT_ID}
+      client-id: ${GOOGLE_CLIENT_ID:626396611666-o9s8esbg30bq285smsm0btlge8r5bggm.apps.googleusercontent.com}

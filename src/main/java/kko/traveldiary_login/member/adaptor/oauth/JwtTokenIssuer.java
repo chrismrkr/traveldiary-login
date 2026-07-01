@@ -12,6 +12,7 @@ import org.springframework.stereotype.Component;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -23,24 +24,28 @@ public class JwtTokenIssuer implements TokenIssuer {
 
     @Override
     public TokenPair issue(Member member) {
-        String access = createToken(member, jwtProperties.accessTokenTtl(), ACCESS_TK_NM);
-        String refresh = createToken(member, jwtProperties.refreshTokenTtl(), REFRESH_TK_NM);
-        return new TokenPair(access, refresh);
+        String jti = UUID.randomUUID().toString();
+        String access = createToken(member, null, jwtProperties.accessTokenTtl(), ACCESS_TK_NM);
+        String refresh = createToken(member, jti, jwtProperties.refreshTokenTtl(), REFRESH_TK_NM);
+        return new TokenPair(access, refresh, jti);
     }
 
     @Override
     public String reissueAccessToken(Member member) {
-        return createToken(member, jwtProperties.accessTokenTtl(), ACCESS_TK_NM);
+        return createToken(member, null, jwtProperties.accessTokenTtl(), ACCESS_TK_NM);
     }
 
-    private String createToken(Member member, Duration ttl, String type) {
-        JwtClaimsSet claims = JwtClaimsSet.builder()
+    private String createToken(Member member, String jti, Duration ttl, String type) {
+        JwtClaimsSet.Builder builder = JwtClaimsSet.builder()
                 .subject(member.getId().toString())
                 .claim("role", member.getRole().name())
                 .claim("type", type)              // access / refresh 구분
                 .issuedAt(Instant.now())
-                .expiresAt(Instant.now().plus(ttl))
-                .build();
+                .expiresAt(Instant.now().plus(ttl));
+        if(jti != null) {
+            builder.id(jti);
+        }
+        JwtClaimsSet claims = builder.build();
         return jwtEncoder.encode(JwtEncoderParameters.from(claims)).getTokenValue();
     }
 }

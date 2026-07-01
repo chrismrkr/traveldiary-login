@@ -24,6 +24,7 @@ class RedisRefreshTokenStorageTest {
 
     private static final Duration REFRESH_TTL = Duration.ofSeconds(100);
     private static final Long MEMBER_ID = 1L;
+    private static final String JTI = "jti-1";
 
     @Container
     static final GenericContainer<?> redis = new GenericContainer<>(DockerImageName.parse("redis:7-alpine")).withExposedPorts(6379);
@@ -49,41 +50,58 @@ class RedisRefreshTokenStorageTest {
     @Test
     @DisplayName("save 후 동일한 토큰으로 isValid 하면 true를 반환한다")
     void save_thenIsValid_returnsTrue() {
-        storage.save(MEMBER_ID, "refresh-token-1");
+        storage.save(MEMBER_ID, JTI, "refresh-token-1");
 
-        assertThat(storage.isValid(MEMBER_ID, "refresh-token-1")).isTrue();
+        assertThat(storage.isValid(MEMBER_ID, JTI, "refresh-token-1")).isTrue();
     }
 
     @Test
     @DisplayName("저장된 토큰과 다른 값이면 isValid는 false를 반환한다")
     void isValid_returnsFalse_whenTokenMismatch() {
-        storage.save(MEMBER_ID, "refresh-token-1");
+        storage.save(MEMBER_ID, JTI, "refresh-token-1");
 
-        assertThat(storage.isValid(MEMBER_ID, "other-token")).isFalse();
+        assertThat(storage.isValid(MEMBER_ID, JTI, "other-token")).isFalse();
     }
 
     @Test
     @DisplayName("저장된 토큰이 없으면 isValid는 false를 반환한다")
     void isValid_returnsFalse_whenNothingStored() {
-        assertThat(storage.isValid(MEMBER_ID, "any-token")).isFalse();
+        assertThat(storage.isValid(MEMBER_ID, JTI, "any-token")).isFalse();
     }
 
     @Test
     @DisplayName("delete 후에는 isValid가 false를 반환한다")
     void delete_invalidatesToken() {
-        storage.save(MEMBER_ID, "refresh-token-1");
+        storage.save(MEMBER_ID, JTI, "refresh-token-1");
 
-        storage.delete(MEMBER_ID);
+        storage.delete(MEMBER_ID, JTI);
 
-        assertThat(storage.isValid(MEMBER_ID, "refresh-token-1")).isFalse();
+        assertThat(storage.isValid(MEMBER_ID, JTI, "refresh-token-1")).isFalse();
+    }
+
+    @Test
+    @DisplayName("같은 회원의 서로 다른 기기(jti) 토큰은 독립적으로 저장·검증된다")
+    void multiDevice_tokensAreIndependent() {
+        storage.save(MEMBER_ID, "jti-device-A", "token-A");
+        storage.save(MEMBER_ID, "jti-device-B", "token-B");
+
+        // 두 기기의 토큰이 서로 덮어쓰지 않고 각각 유효
+        assertThat(storage.isValid(MEMBER_ID, "jti-device-A", "token-A")).isTrue();
+        assertThat(storage.isValid(MEMBER_ID, "jti-device-B", "token-B")).isTrue();
+
+        // 한 기기만 로그아웃(delete)해도 다른 기기는 유지된다
+        storage.delete(MEMBER_ID, "jti-device-A");
+
+        assertThat(storage.isValid(MEMBER_ID, "jti-device-A", "token-A")).isFalse();
+        assertThat(storage.isValid(MEMBER_ID, "jti-device-B", "token-B")).isTrue();
     }
 
     @Test
     @DisplayName("save 시 refresh token TTL이 Redis 키 만료시간으로 설정된다")
     void save_setsTtlOnKey() {
-        storage.save(MEMBER_ID, "refresh-token-1");
+        storage.save(MEMBER_ID, JTI, "refresh-token-1");
 
-        Long expire = redisTemplate.getExpire("refresh:" + MEMBER_ID, TimeUnit.SECONDS);
+        Long expire = redisTemplate.getExpire("refresh:" + MEMBER_ID + ":" + JTI, TimeUnit.SECONDS);
 
         // 방금 설정했으므로 TTL 근처(95~100초) 값이어야 한다
         assertThat(expire).isBetween(REFRESH_TTL.getSeconds() - 5, REFRESH_TTL.getSeconds());
