@@ -44,8 +44,8 @@ public class Member {
         this.name = name;
     }
 
-    public void updateByOAuthInfo(OAuthInfo oAuthInfo) {
-        this.updateEmail(oAuthInfo.email());
-        this.updateName(oAuthInfo.name());
+    public void updateByOAuthInfo(OAuthUserInfo oAuthUserInfo) {
+        this.updateEmail(oAuthUserInfo.email());
+        this.updateName(oAuthUserInfo.name());
     }
 }

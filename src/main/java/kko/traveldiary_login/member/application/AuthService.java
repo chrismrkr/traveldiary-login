@@ -1,12 +1,11 @@
 package kko.traveldiary_login.member.application;
 
+import kko.traveldiary_login.member.application.provided.MemberService;
 import kko.traveldiary_login.member.application.provided.MobileSDKOAuthManager;
-import kko.traveldiary_login.member.application.required.MemberRepository;
-import kko.traveldiary_login.member.application.required.OAuthVerifier;
-import kko.traveldiary_login.member.application.required.RefreshTokenStorage;
-import kko.traveldiary_login.member.application.required.TokenIssuer;
+import kko.traveldiary_login.member.application.required.*;
 import kko.traveldiary_login.member.domain.*;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -15,38 +14,57 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
-public class AuthService implements MobileSDKOAuthManager {
+public class AuthService implements MobileSDKOAuthManager, MemberService {
     private final Map<AuthProvider, OAuthVerifier> verifiers;
     private final MemberRepository memberRepository;
     private final RefreshTokenStorage refreshTokenStorage;
     private final TokenIssuer tokenIssuer;
+    private final TokenParser tokenParser;
 
 
     @Autowired
     public AuthService(List<OAuthVerifier> verifierList,
-                       MemberRepository memberRepository, RefreshTokenStorage refreshTokenStorage, TokenIssuer tokenIssuer) {
+                       MemberRepository memberRepository, RefreshTokenStorage refreshTokenStorage,
+                       TokenIssuer tokenIssuer, TokenParser tokenParser) {
         this.verifiers = verifierList.stream()
                 .collect(Collectors.toMap(OAuthVerifier::provider, oAuthVerifier -> oAuthVerifier));
         this.memberRepository = memberRepository;
         this.refreshTokenStorage = refreshTokenStorage;
         this.tokenIssuer = tokenIssuer;
+        this.tokenParser = tokenParser;
     }
 
     @Override
     @Transactional
     public TokenPair login(AuthProvider authProvider, String idToken) {
-        OAuthInfo oAuthInfo = verifiers.get(authProvider).verify(idToken);
+        OAuthUserInfo oAuthUserInfo = verifiers.get(authProvider).verify(idToken);
 
-        Member member = memberRepository.findByProviderAndProviderId(authProvider, oAuthInfo.providerId())
+        Member member = memberRepository.findByProviderAndProviderId(authProvider, oAuthUserInfo.providerId())
                 .map(m -> {
-                    m.updateByOAuthInfo(oAuthInfo);
+                    m.updateByOAuthInfo(oAuthUserInfo);
                     return m;
                 })
-                .orElseGet(() -> Member.register(authProvider, oAuthInfo.providerId(), oAuthInfo.email(), oAuthInfo.name(), Role.USER));
+                .orElseGet(() -> Member.register(authProvider, oAuthUserInfo.providerId(), oAuthUserInfo.email(), oAuthUserInfo.name(), Role.USER));
 
         member = memberRepository.save(member);
         TokenPair tokenPair = tokenIssuer.issue(member);
         refreshTokenStorage.save(member.getId(), tokenPair.jti(), tokenPair.refreshToken());
         return tokenPair;
+    }
+
+    @Override
+    public TokenPair refresh(String refreshToken) {
+        TokenClaims tokenClaims = tokenParser.parseRefreshToken(refreshToken);
+
+        if(!refreshTokenStorage.isValid(tokenClaims.memberId(), tokenClaims.jti(), refreshToken)) {
+            throw new BadCredentialsException("Invalid Refresh Token: expired");
+        }
+
+        Member member = memberRepository.findById(tokenClaims.memberId()).orElseThrow();
+        TokenPair newToken = tokenIssuer.issue(member);
+
+        refreshTokenStorage.delete(tokenClaims.memberId(), tokenClaims.jti());
+        refreshTokenStorage.save(member.getId(), newToken.jti(), newToken.refreshToken());
+        return newToken;
     }
 }

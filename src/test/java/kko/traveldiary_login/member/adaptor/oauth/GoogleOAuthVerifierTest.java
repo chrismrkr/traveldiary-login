@@ -11,7 +11,7 @@ import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
 import com.google.api.client.json.webtoken.JsonWebSignature;
 import java.io.IOException;
 import kko.traveldiary_login.member.domain.AuthProvider;
-import kko.traveldiary_login.member.domain.OAuthInfo;
+import kko.traveldiary_login.member.domain.OAuthUserInfo;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -44,7 +44,7 @@ class GoogleOAuthVerifierTest {
         GoogleIdToken token = googleIdToken("google-sub-123", "user@example.com", "홍길동");
         when(delegate.verify("valid-token")).thenReturn(token);
 
-        OAuthInfo info = sut.verify("valid-token");
+        OAuthUserInfo info = sut.verify("valid-token");
 
         assertThat(info.providerId()).isEqualTo("google-sub-123");
         assertThat(info.email()).isEqualTo("user@example.com");

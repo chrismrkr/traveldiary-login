@@ -13,7 +13,7 @@ import kko.traveldiary_login.member.application.required.OAuthVerifier;
 import kko.traveldiary_login.member.application.required.RefreshTokenStorage;
 import kko.traveldiary_login.member.domain.AuthProvider;
 import kko.traveldiary_login.member.domain.Member;
-import kko.traveldiary_login.member.domain.OAuthInfo;
+import kko.traveldiary_login.member.domain.OAuthUserInfo;
 import kko.traveldiary_login.member.domain.Role;
 import kko.traveldiary_login.member.domain.TokenPair;
 import org.junit.jupiter.api.BeforeEach;
@@ -84,7 +84,7 @@ class AuthServiceSpringBootTest {
     @DisplayName("최초 로그인: Member 신규 생성 및 Access 및 Refresh 발급")
     void firstLogin() {
         when(oAuthVerifier.verify(anyString()))
-                .thenReturn(new OAuthInfo("sub-new", "new@example.com", "새유저"));
+                .thenReturn(new OAuthUserInfo("sub-new", "new@example.com", "새유저"));
 
         TokenPair tokenPair = authService.login(AuthProvider.GOOGLE, "google-id-token");
 
@@ -113,7 +113,7 @@ class AuthServiceSpringBootTest {
         assertThat(memberJpaRepository.count()).isEqualTo(1);
 
         when(oAuthVerifier.verify(anyString()))
-                .thenReturn(new OAuthInfo("sub-1", "changed@example.com", "새이름"));
+                .thenReturn(new OAuthUserInfo("sub-1", "changed@example.com", "새이름"));
 
         TokenPair tokenPair = authService.login(AuthProvider.GOOGLE, "google-id-token");
 
@@ -134,7 +134,7 @@ class AuthServiceSpringBootTest {
     @DisplayName("서로 다른 기기로 로그인 : 서로 다른 jti로 여러개의 토큰 발급")
     void loginVariousDevice() {
         when(oAuthVerifier.verify(anyString()))
-                .thenReturn(new OAuthInfo("sub-1", "user@example.com", "유저"));
+                .thenReturn(new OAuthUserInfo("sub-1", "user@example.com", "유저"));
 
         // 같은 회원이 두 기기에서 각각 로그인
         TokenPair deviceA = authService.login(AuthProvider.GOOGLE, "id-token-from-A");

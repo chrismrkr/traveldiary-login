@@ -6,7 +6,7 @@ import com.google.api.client.googleapis.javanet.GoogleNetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
 import kko.traveldiary_login.member.application.required.OAuthVerifier;
 import kko.traveldiary_login.member.domain.AuthProvider;
-import kko.traveldiary_login.member.domain.OAuthInfo;
+import kko.traveldiary_login.member.domain.OAuthUserInfo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -36,7 +36,7 @@ public class GoogleOAuthVerifier implements OAuthVerifier {
     }
 
     @Override
-    public OAuthInfo verify(String idToken) {
+    public OAuthUserInfo verify(String idToken) {
         try {
             GoogleIdToken token = verifier.verify(idToken);
             if (token == null) {
@@ -49,7 +49,7 @@ public class GoogleOAuthVerifier implements OAuthVerifier {
             String email = payload.getEmail();
             String name = (String) payload.get("name");
 
-            return new OAuthInfo(providerId, email, name);
+            return new OAuthUserInfo(providerId, email, name);
         } catch (Exception e) {
             throw new BadCredentialsException("Verifying ID Token Failed", e);
         }
