@@ -21,6 +21,11 @@ public class RedisRefreshTokenStorage implements RefreshTokenStorage {
     }
 
     @Override
+    public String getAndDelete(Long memberId, String jti) {
+        return redisTemplate.opsForValue().getAndDelete(key(memberId, jti));
+    }
+
+    @Override
     public boolean isValid(Long memberId, String jti, String refreshToken) {
         String stored = redisTemplate.opsForValue().get(key(memberId, jti));
         return stored != null && stored.equals(refreshToken);

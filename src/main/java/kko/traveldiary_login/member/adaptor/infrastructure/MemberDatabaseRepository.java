@@ -29,4 +29,9 @@ public class MemberDatabaseRepository implements MemberRepository {
         MemberEntity saved = jpaRepository.save(MemberEntity.from(member));
         return saved.toDomain();
     }
+
+    @Override
+    public void delete(Long memberId) {
+        jpaRepository.deleteById(memberId);
+    }
 }

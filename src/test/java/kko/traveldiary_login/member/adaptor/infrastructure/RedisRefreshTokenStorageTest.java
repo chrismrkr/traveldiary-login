@@ -3,7 +3,11 @@ package kko.traveldiary_login.member.adaptor.infrastructure;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.time.Duration;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import kko.traveldiary_login.member.adaptor.oauth.config.JwtProperties;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -94,6 +98,58 @@ class RedisRefreshTokenStorageTest {
 
         assertThat(storage.isValid(MEMBER_ID, "jti-device-A", "token-A")).isFalse();
         assertThat(storage.isValid(MEMBER_ID, "jti-device-B", "token-B")).isTrue();
+    }
+
+    @Test
+    @DisplayName("getAndDelete: 저장된 토큰을 반환하면서 즉시 삭제한다")
+    void getAndDelete_returnsValueAndRemoves() {
+        storage.save(MEMBER_ID, JTI, "refresh-token-1");
+
+        String consumed = storage.getAndDelete(MEMBER_ID, JTI);
+
+        assertThat(consumed).isEqualTo("refresh-token-1");
+        // 소비 후에는 더 이상 유효하지 않다
+        assertThat(storage.isValid(MEMBER_ID, JTI, "refresh-token-1")).isFalse();
+    }
+
+    @Test
+    @DisplayName("getAndDelete: 저장된 값이 없으면 null을 반환한다")
+    void getAndDelete_returnsNullWhenAbsent() {
+        assertThat(storage.getAndDelete(MEMBER_ID, JTI)).isNull();
+    }
+
+    @Test
+    @DisplayName("getAndDelete: 여러 스레드가 동시에 호출해도 오직 하나만 값을 받는다 (원자적 소비)")
+    void getAndDelete_isAtomic_onlyOneCallerGetsValue() throws InterruptedException {
+        storage.save(MEMBER_ID, JTI, "refresh-token-1");
+
+        int threadCount = 20;
+        ExecutorService pool = Executors.newFixedThreadPool(threadCount);
+        CountDownLatch ready = new CountDownLatch(threadCount);
+        CountDownLatch start = new CountDownLatch(1);
+        AtomicInteger nonNullCount = new AtomicInteger();
+
+        for (int i = 0; i < threadCount; i++) {
+            pool.submit(() -> {
+                ready.countDown();
+                try {
+                    start.await();   // 모두 동시에 출발
+                    if (storage.getAndDelete(MEMBER_ID, JTI) != null) {
+                        nonNullCount.incrementAndGet();
+                    }
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                }
+            });
+        }
+        ready.await();
+        start.countDown();
+        pool.shutdown();
+        assertThat(pool.awaitTermination(10, TimeUnit.SECONDS)).isTrue();
+
+        // 20개가 동시에 소비를 시도했지만 값을 받은 건 정확히 1개
+        assertThat(nonNullCount.get()).isEqualTo(1);
+        assertThat(storage.isValid(MEMBER_ID, JTI, "refresh-token-1")).isFalse();
     }
 
     @Test

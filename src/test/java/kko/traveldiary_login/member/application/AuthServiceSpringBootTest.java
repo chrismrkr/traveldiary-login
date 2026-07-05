@@ -6,7 +6,13 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import jakarta.persistence.EntityManager;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicInteger;
 import kko.traveldiary_login.member.adaptor.infrastructure.MemberJpaRepository;
+import kko.traveldiary_login.member.application.provided.MemberService;
 import kko.traveldiary_login.member.application.provided.MobileSDKOAuthManager;
 import kko.traveldiary_login.member.application.required.MemberRepository;
 import kko.traveldiary_login.member.application.required.OAuthVerifier;
@@ -61,6 +67,8 @@ class AuthServiceSpringBootTest {
 
     @Autowired
     private MobileSDKOAuthManager authService;
+    @Autowired
+    private MemberService memberService;   // 같은 AuthService 빈 (refresh 호출용)
     @Autowired
     private OAuthVerifier oAuthVerifier;   // 위에서 등록한 mock
     @Autowired
@@ -150,5 +158,44 @@ class AuthServiceSpringBootTest {
         // 두 기기의 refresh token이 서로 덮어쓰지 않고 각각 독립적으로 유효함
         assertThat(refreshTokenStorage.isValid(memberId, deviceA.jti(), deviceA.refreshToken())).isTrue();
         assertThat(refreshTokenStorage.isValid(memberId, deviceB.jti(), deviceB.refreshToken())).isTrue();
+    }
+
+    @Test
+    @DisplayName("동시에 같은 refresh token으로 refresh 하면 정확히 하나만 성공한다 (double-spend 방지)")
+    void refresh_concurrentSameToken_onlyOneSucceeds() throws InterruptedException {
+        when(oAuthVerifier.verify(anyString()))
+                .thenReturn(new OAuthUserInfo("sub-1", "user@example.com", "유저"));
+        TokenPair loggedIn = authService.login(AuthProvider.GOOGLE, "id-token");
+        String refreshToken = loggedIn.refreshToken();
+
+        int threadCount = 8;
+        ExecutorService pool = Executors.newFixedThreadPool(threadCount);
+        CountDownLatch ready = new CountDownLatch(threadCount);
+        CountDownLatch start = new CountDownLatch(1);
+        AtomicInteger success = new AtomicInteger();
+        AtomicInteger failure = new AtomicInteger();
+
+        for (int i = 0; i < threadCount; i++) {
+            pool.submit(() -> {
+                ready.countDown();
+                try {
+                    start.await();   // 모두 동시에 같은 토큰으로 refresh 시도
+                    memberService.refresh(refreshToken);
+                    success.incrementAndGet();
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                } catch (RuntimeException e) {
+                    failure.incrementAndGet();   // BadCredentialsException 등
+                }
+            });
+        }
+        ready.await();
+        start.countDown();
+        pool.shutdown();
+        assertThat(pool.awaitTermination(10, TimeUnit.SECONDS)).isTrue();
+
+        // 동시 요청 중 정확히 하나만 성공, 나머지는 모두 거부
+        assertThat(success.get()).isEqualTo(1);
+        assertThat(failure.get()).isEqualTo(threadCount - 1);
     }
 }

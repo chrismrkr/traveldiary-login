@@ -53,18 +53,37 @@ public class AuthService implements MobileSDKOAuthManager, MemberService {
     }
 
     @Override
+    @Transactional
     public TokenPair refresh(String refreshToken) {
         TokenClaims tokenClaims = tokenParser.parseRefreshToken(refreshToken);
 
-        if(!refreshTokenStorage.isValid(tokenClaims.memberId(), tokenClaims.jti(), refreshToken)) {
+        String storedRefreshToken = refreshTokenStorage.getAndDelete(tokenClaims.memberId(), tokenClaims.jti());
+        if(storedRefreshToken == null || !storedRefreshToken.equals(refreshToken)) {
             throw new BadCredentialsException("Invalid Refresh Token: expired");
         }
 
         Member member = memberRepository.findById(tokenClaims.memberId()).orElseThrow();
         TokenPair newToken = tokenIssuer.issue(member);
 
-        refreshTokenStorage.delete(tokenClaims.memberId(), tokenClaims.jti());
         refreshTokenStorage.save(member.getId(), newToken.jti(), newToken.refreshToken());
         return newToken;
+    }
+
+    @Override
+    public void logout(String refreshToken) {
+        TokenClaims tokenClaims = tokenParser.parseRefreshToken(refreshToken);
+        refreshTokenStorage.delete(tokenClaims.memberId(), tokenClaims.jti());
+
+    }
+
+    @Override
+    public Member me(Long memberId) {
+        return memberRepository.findById(memberId)
+                .orElseThrow();
+    }
+
+    @Override
+    public void withdraw(Long memberId) {
+        memberRepository.delete(memberId);
     }
 }
