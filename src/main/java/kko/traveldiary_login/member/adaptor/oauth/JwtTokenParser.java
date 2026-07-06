@@ -11,8 +11,6 @@ import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.security.oauth2.jwt.JwtValidationException;
 import org.springframework.stereotype.Component;
 
-import java.time.Instant;
-
 @Component
 @RequiredArgsConstructor
 public class JwtTokenParser implements TokenParser {
@@ -22,7 +20,6 @@ public class JwtTokenParser implements TokenParser {
         Jwt jwt;
         try {
             jwt = jwtDecoder.decode(token);
-
         } catch (JwtValidationException e) {
             throw new TokenExpiredException("Expired Token", e);
         } catch (JwtException ex) {

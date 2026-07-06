@@ -13,7 +13,7 @@ import org.springframework.security.web.SecurityFilterChain;
 @EnableWebSecurity
 public class SecurityConfig {
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http, RestAuthenticationEntryPoint authenticationEntryPoint) throws Exception {
         http
                 // JWT 기반이라 CSRF 불필요 (세션 안 씀)
                 .csrf(AbstractHttpConfigurer::disable)
@@ -26,7 +26,10 @@ public class SecurityConfig {
                         .anyRequest().authenticated())
                 // access token 검증 (공개키 기반 JwtDecoder 사용)
                 .oauth2ResourceServer(oauth ->
-                        oauth.jwt(Customizer.withDefaults()));
+                        oauth.jwt(Customizer.withDefaults())
+                                .authenticationEntryPoint(authenticationEntryPoint))
+                .exceptionHandling(ex ->
+                        ex.authenticationEntryPoint(authenticationEntryPoint));
         return http.build();
     }
 }

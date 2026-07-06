@@ -1,5 +1,6 @@
 package kko.traveldiary_login.member.adaptor.inbound;
 
+import kko.traveldiary_login.member.adaptor.inbound.dto.ErrorResponse;
 import kko.traveldiary_login.member.adaptor.oauth.exception.TokenExpiredException;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
@@ -34,7 +35,4 @@ public class MemberControllerAdvice {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                 .body(new ErrorResponse("UNKNOWN_ILLEGAL_ACCESS", null));
     }
-
-
-    public record ErrorResponse(String error, String message) {}
 }
