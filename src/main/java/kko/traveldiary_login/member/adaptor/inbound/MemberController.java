@@ -21,7 +21,7 @@ public class MemberController {
     private final MemberService memberService;
     private final MobileSDKOAuthManager mobileSDKOAuthManager;
 
-    @PostMapping("/auth/login")
+    @PostMapping("/api/auth/login")
     public ResponseEntity<TokenResponse> login(@RequestBody MemberLoginRequest loginRequest) {
         String authProvider = loginRequest.provider();
         TokenPair tokenPair = mobileSDKOAuthManager.login(AuthProvider.valueOf(authProvider), loginRequest.idToken());
@@ -30,7 +30,7 @@ public class MemberController {
         );
     }
 
-    @PostMapping("/auth/refresh")
+    @PostMapping("/api/auth/refresh")
     public ResponseEntity<TokenResponse> refresh(@RequestBody TokenRefreshRequest refreshRequest) {
         TokenPair refreshed = memberService.refresh(refreshRequest.refreshToken());
         return ResponseEntity.ok(
@@ -38,7 +38,7 @@ public class MemberController {
         );
     }
 
-    @GetMapping("/auth/me")
+    @GetMapping("/api/auth/me")
     public ResponseEntity<MemberDetailsResponse> me(@AuthenticationPrincipal Jwt jwt) {
         Long memberId = Long.valueOf(jwt.getSubject());
         Member me = memberService.me(memberId);
@@ -47,13 +47,13 @@ public class MemberController {
         );
     }
 
-    @PostMapping("/auth/logout")
+    @PostMapping("/api/auth/logout")
     public ResponseEntity<Void> logout(@AuthenticationPrincipal Jwt jwt, @RequestBody MemberLogoutRequest logoutRequest) {
         memberService.logout(logoutRequest.refreshToken());
         return ResponseEntity.noContent().build();
     }
 
-    @PostMapping("/auth/withdraw")
+    @PostMapping("/api/auth/withdraw")
     public ResponseEntity<Void> withdraw(@AuthenticationPrincipal Jwt jwt) {
         Long memberId = Long.valueOf(jwt.getSubject());
         memberService.withdraw(memberId);
