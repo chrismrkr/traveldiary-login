@@ -5,6 +5,10 @@ spring:
     redis:
       host: ${REDIS_HOST:localhost}
       port: ${REDIS_PORT:6379}
+  jpa:
+    hibernate:
+      ddl-auto: update   # 개발용 스키마 자동 생성/갱신 (운영은 Flyway/Liquibase 권장)
+    show-sql: true
 
 app:
   jwt:
