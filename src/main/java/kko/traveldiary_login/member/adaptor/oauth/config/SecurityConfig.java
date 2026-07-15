@@ -22,7 +22,7 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 // 엔드포인트별 인증 정책
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/login", "/auth/refresh").permitAll()
+                        .requestMatchers("/api/auth/login", "/api/auth/refresh").permitAll()
                         .anyRequest().authenticated())
                 // access token 검증 (공개키 기반 JwtDecoder 사용)
                 .oauth2ResourceServer(oauth ->
