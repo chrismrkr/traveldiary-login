@@ -30,6 +30,9 @@ dependencies {
 	// 구글 ID token 1회 검증 — 구글 라이브러리
 	implementation("com.google.api-client:google-api-client:2.7.0")
 
+	// Swagger / OpenAPI 문서
+	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.9")
+
 //	implementation("io.jsonwebtoken:jjwt-api:0.12.6")
 //	runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.6")
 //	runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.6")

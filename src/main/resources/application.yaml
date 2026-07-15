@@ -10,6 +10,13 @@ spring:
       ddl-auto: update   # 개발용 스키마 자동 생성/갱신 (운영은 Flyway/Liquibase 권장)
     show-sql: true
 
+# Swagger/OpenAPI 노출 여부 — 운영 설정 분리 시 여기를 false 로 두면 문서가 닫힌다
+springdoc:
+  api-docs:
+    enabled: true
+  swagger-ui:
+    enabled: true
+
 app:
   jwt:
     private-key: classpath:keys/traveldiary-private_pkcs8.pem

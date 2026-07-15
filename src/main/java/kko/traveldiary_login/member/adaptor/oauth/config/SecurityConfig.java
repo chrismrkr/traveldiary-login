@@ -23,6 +23,8 @@ public class SecurityConfig {
                 // 엔드포인트별 인증 정책
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/auth/login", "/api/auth/refresh").permitAll()
+                        // Swagger UI / OpenAPI 문서
+                        .requestMatchers("/swagger-ui/**", "/swagger-ui.html", "/v3/api-docs/**").permitAll()
                         .anyRequest().authenticated())
                 // access token 검증 (공개키 기반 JwtDecoder 사용)
                 .oauth2ResourceServer(oauth ->

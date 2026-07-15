@@ -73,7 +73,6 @@ public class AuthService implements MobileSDKOAuthManager, MemberService {
     public void logout(String refreshToken) {
         TokenClaims tokenClaims = tokenParser.parseRefreshToken(refreshToken);
         refreshTokenStorage.delete(tokenClaims.memberId(), tokenClaims.jti());
-
     }
 
     @Override
@@ -85,5 +84,6 @@ public class AuthService implements MobileSDKOAuthManager, MemberService {
     @Override
     public void withdraw(Long memberId) {
         memberRepository.delete(memberId);
+        // TODO (memberId - jti) 로 저장된 RefreshToken을 refreshTokenStorage에서 모두 삭제하도록 추가 구현 필요
     }
 }
