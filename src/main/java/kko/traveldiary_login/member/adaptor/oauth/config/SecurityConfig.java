@@ -29,6 +29,7 @@ public class SecurityConfig {
                 // access token 검증 (공개키 기반 JwtDecoder 사용)
                 .oauth2ResourceServer(oauth ->
                         oauth.jwt(Customizer.withDefaults())
+                                // access token 검증 중 실패 시, 어떤 ExceptionTranslationFilter가 동작할지 결정
                                 .authenticationEntryPoint(authenticationEntryPoint))
                 .exceptionHandling(ex ->
                         ex.authenticationEntryPoint(authenticationEntryPoint));
